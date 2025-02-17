@@ -1,6 +1,7 @@
 package com.awesomepizza.model;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,6 +44,8 @@ public class CustomerOrder {
 	@OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<CustomerOrderPizza> pizzas = new ArrayList<CustomerOrderPizza>();
 
+	private LocalDateTime createdAt;
+
 	public CustomerOrder() {
 	}
 
@@ -53,6 +56,7 @@ public class CustomerOrder {
 		this.customerName = customerName;
 		this.contactNumber = contactNumber;
 		this.pizzas = pizzas;
+		this.createdAt = LocalDateTime.now();
 	}
 
 	public BigDecimal calculateTotalPrice() {
@@ -107,6 +111,10 @@ public class CustomerOrder {
 
 	public void setPizzas(List<CustomerOrderPizza> pizzas) {
 		this.pizzas = pizzas;
+	}
+
+	public LocalDateTime getCreatedAt() {
+		return createdAt;
 	}
 
 	public void addToPizzas(CustomerOrderPizza pizza) {

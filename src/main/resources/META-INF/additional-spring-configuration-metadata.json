@@ -1,0 +1,7 @@
+{"properties": [
+  {
+    "name": "internal.api.key",
+    "type": "java.lang.String",
+    "description": "Api key used for internal APIs"
+  }
+]}

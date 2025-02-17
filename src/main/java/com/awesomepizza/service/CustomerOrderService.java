@@ -1,10 +1,10 @@
 package com.awesomepizza.service;
 
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.awesomepizza.dto.CustomerOrderDTO;
@@ -18,25 +18,35 @@ import com.awesomepizza.repository.IngredientRepository;
 import com.awesomepizza.repository.PizzaRepository;
 import com.awesomepizza.repository.SizeRepository;
 
+import jakarta.persistence.EntityNotFoundException;
+
 @Service
 public class CustomerOrderService {
 
-	@Autowired
-	private CustomerOrderRepository customerOrderRepository;
-	@Autowired
-	private PizzaRepository pizzaRepository;
-	@Autowired
-	private SizeRepository sizeRepository;
-	@Autowired
-	private CrustRepository crustRepository;
-	@Autowired
-	private IngredientRepository ingredientRepository;
+	// repository
+	private final CustomerOrderRepository customerOrderRepository;
+	private final PizzaRepository pizzaRepository;
+	private final SizeRepository sizeRepository;
+	private final CrustRepository crustRepository;
+	private final IngredientRepository ingredientRepository;
+
+	public CustomerOrderService(CustomerOrderRepository customerOrderRepository, PizzaRepository pizzaRepository,
+			SizeRepository sizeRepository, CrustRepository crustRepository, IngredientRepository ingredientRepository) {
+		this.customerOrderRepository = customerOrderRepository;
+		this.pizzaRepository = pizzaRepository;
+		this.sizeRepository = sizeRepository;
+		this.crustRepository = crustRepository;
+		this.ingredientRepository = ingredientRepository;
+	}
 
 	// ================================================================================
 	// CREAZIONE ORDINE
 	// ================================================================================
 
 	public CustomerOrderDTO createOrder(CustomerOrderDTO orderDTO) {
+		if (orderDTO.pizzas().isEmpty()) {
+			throw new IllegalArgumentException("An order must contain at least one pizza.");
+		}
 
 		// TODO ci vorrebbe gestione di accettazione dell'ordine in base all'orario
 		// probabilmente, ma ora per primo sprint accettiamo tutto e impostiamo tutto in
@@ -82,9 +92,7 @@ public class CustomerOrderService {
 
 		// TODO verificare se viene fuori prezzo totale dell'ordine
 
-		return new CustomerOrderDTO(customerOrder.getId(), customerOrder.getTrackingCode(), customerOrder.getStatus(),
-				customerOrder.getCustomerName(), customerOrder.getContactNumber(),
-				customerOrder.getPizzas().stream().map(this::convertPizzaToDTO).collect(Collectors.toList()));
+		return toDTO(customerOrder);
 	}
 
 	private String generateTrackingCode() {
@@ -92,8 +100,55 @@ public class CustomerOrderService {
 		return "ORDER-" + LocalDate.now().toString() + "-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
 	}
 
-	// Metodo di supporto per la mappatura di una Pizza a PizzaDTO
-	private CustomerOrderPizzaDTO convertPizzaToDTO(CustomerOrderPizza customerOrderPizza) {
+	// ================================================================================
+	// RECUPERO ORDINE DA TRACKING CODE
+	// ================================================================================
+
+	public CustomerOrderDTO getOrderByCode(String orderCode) {
+		CustomerOrder order = customerOrderRepository.findByTrackingCode(orderCode)
+				.orElseThrow(() -> new EntityNotFoundException(
+						String.format("Order with tracking number (%s) not found", orderCode)));
+
+		return toDTO(order);
+	}
+
+	// ================================================================================
+	// AGGIORNAMENTO STATO ORDINE
+	// ================================================================================
+
+	public CustomerOrderDTO updateOrderStatus(Long orderId, String status) {
+		CustomerOrder order = customerOrderRepository.findById(orderId)
+				.orElseThrow(() -> new EntityNotFoundException(String.format("Order with id (%s) not found", orderId)));
+
+		try {
+			order.setStatus(OrderStatus.valueOf(status));
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException("Invalid order status", e);
+		}
+
+		customerOrderRepository.save(order);
+
+		return toDTO(order);
+	}
+
+	// ================================================================================
+	// RECUPERO PROSSIMO ORDINE
+	// ================================================================================
+
+	public Optional<CustomerOrderDTO> getNextOrder() {
+		return customerOrderRepository.findFirstByStatusOrderByCreatedAtAsc(OrderStatus.PENDING).map(this::toDTO);
+	}
+
+	// ================================================================================
+	// MAPPATURE ENTITY -> DTO (fatte in controller per semplicità)
+	// ================================================================================
+
+	public CustomerOrderDTO toDTO(CustomerOrder order) {
+		return new CustomerOrderDTO(order.getId(), order.getTrackingCode(), order.getStatus(), order.getCustomerName(),
+				order.getContactNumber(), order.getPizzas().stream().map(this::toDTO).collect(Collectors.toList()));
+	}
+
+	public CustomerOrderPizzaDTO toDTO(CustomerOrderPizza customerOrderPizza) {
 		return new CustomerOrderPizzaDTO(customerOrderPizza.getPizza().getId(), customerOrderPizza.getPizza().getCode(),
 				customerOrderPizza.getSelectedCrust().getCode(), customerOrderPizza.getSelectedSize().getCode(),
 				customerOrderPizza.getExtraIngredients().stream().map(ing -> ing.getCode())
@@ -101,39 +156,4 @@ public class CustomerOrderService {
 				customerOrderPizza.getFinalPrice());
 	}
 
-//	// Metodo per ottenere un ordine completo con le pizze
-//	public CustomerOrderDTO getCustomerOrder(Long orderId) {
-//		// Recupera l'entità dell'ordine dal database
-//		CustomerOrder order = repositories.getCustomerOrderRepository().findById(orderId)
-//				.orElseThrow(() -> new RuntimeException("Order not found"));
-//
-//		// Mappa l'entità CustomerOrder a CustomerOrderDTO
-//		List<CustomerOrderPizzaDTO> pizzaDTOs = order.getPizzas().stream().map(this::convertPizzaToDTO) // Mappa
-//																										// ciascuna
-//																										// pizza a
-//				// PizzaDTO
-//				.collect(Collectors.toList());
-//
-//		// Crea il CustomerOrderDTO con la lista di PizzaDTO
-//		return new CustomerOrderDTO(order.getId(), order.getCustomerName(), order.getContactNumber(), pizzaDTOs);
-//	}
-//
-
-	// Recuperare tutti gli ordini
-	// TODO non dovrebbe essere esposta al di fuori del pizzaiolo sta cosa
-//	public List<CustomerOrderDTO> getAllOrders() {
-//		return customerOrderRepository.findAll().stream().map(CustomerOrderDTO::new).collect(Collectors.toList());
-//	}
-//
-//	// Aggiornare lo stato dell'ordine
-//	public CustomerOrderDTO updateOrderStatus(Long orderId, String status) {
-//		Optional<CustomerOrder> order = customerOrderRepository.findById(orderId);
-//		if (order.isPresent()) {
-//			order.get().setStatus(status);
-//			CustomerOrder updatedOrder = customerOrderRepository.save(order.get());
-//			return new CustomerOrderDTO(updatedOrder);
-//		} else {
-//			throw new OrderNotFoundException("Order not found with id " + orderId);
-//		}
-//	}
 }
