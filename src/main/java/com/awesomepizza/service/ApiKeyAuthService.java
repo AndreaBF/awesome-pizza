@@ -13,6 +13,6 @@ public class ApiKeyAuthService {
 	}
 
 	public boolean isValidApiKey(String apiKey) {
-		return apiKey != null && apiKey.equals(apiKeyAuthConfig.getApiKey());
+		return apiKey != null && apiKey.equals(apiKeyAuthConfig.getKey());
 	}
 }

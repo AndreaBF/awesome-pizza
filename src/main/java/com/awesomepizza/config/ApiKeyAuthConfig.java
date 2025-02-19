@@ -4,15 +4,15 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConfigurationProperties(prefix = "internal.api.key")
+@ConfigurationProperties(prefix = "internal.api")
 public class ApiKeyAuthConfig {
-	private String apiKey;
+	private String key;
 
-	public String getApiKey() {
-		return apiKey;
+	public String getKey() {
+		return key;
 	}
 
-	public void setApiKey(String apiKey) {
-		this.apiKey = apiKey;
+	public void setKey(String key) {
+		this.key = key;
 	}
 }

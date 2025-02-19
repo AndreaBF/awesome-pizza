@@ -1,14 +1,18 @@
 package com.awesomepizza.service;
 
 import java.time.LocalDate;
-import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.awesomepizza.dto.CustomerOrderDTO;
 import com.awesomepizza.dto.CustomerOrderPizzaDTO;
+import com.awesomepizza.dto.OrderStatusRequestDTO;
+import com.awesomepizza.exception.NoOrdersAvailableException;
 import com.awesomepizza.model.CustomerOrder;
 import com.awesomepizza.model.CustomerOrder.OrderStatus;
 import com.awesomepizza.model.CustomerOrderPizza;
@@ -22,6 +26,8 @@ import jakarta.persistence.EntityNotFoundException;
 
 @Service
 public class CustomerOrderService {
+
+	private static final Logger logger = LoggerFactory.getLogger(CustomerOrderService.class);
 
 	// repository
 	private final CustomerOrderRepository customerOrderRepository;
@@ -44,6 +50,8 @@ public class CustomerOrderService {
 	// ================================================================================
 
 	public CustomerOrderDTO createOrder(CustomerOrderDTO orderDTO) {
+		logger.info("Requested order creation");
+
 		if (orderDTO.pizzas().isEmpty()) {
 			throw new IllegalArgumentException("An order must contain at least one pizza.");
 		}
@@ -75,17 +83,20 @@ public class CustomerOrderService {
 					sizeRepository.findByCode(orderPizzaDTO.sizeCode()).orElseThrow(() -> new RuntimeException(
 							String.format("Size with code '%s' not found", orderPizzaDTO.sizeCode()))));
 
-			customerOrderPizza.setExtraIngredients(orderPizzaDTO.extraIngredientCodes().stream()
-					.map(ingredientCode -> ingredientRepository.findByCode(ingredientCode)
-							.orElseThrow(() -> new RuntimeException(
-									String.format("Ingredient with code '%s' not found", ingredientCode))))
-					.collect(Collectors.toList()));
+			if (orderPizzaDTO.extraIngredientCodes() != null)
+				customerOrderPizza.setExtraIngredients(orderPizzaDTO.extraIngredientCodes().stream()
+						.map(ingredientCode -> ingredientRepository.findByCode(ingredientCode)
+								.orElseThrow(() -> new RuntimeException(
+										String.format("Ingredient with code '%s' not found", ingredientCode))))
+						.collect(Collectors.toList()));
 
 			customerOrder.addToPizzas(customerOrderPizza);
 		}
 
 		// Salvataggio dell'ordine nel database
 		customerOrder = customerOrderRepository.save(customerOrder);
+
+		logger.info("Order created");
 
 		// Restituire il DTO dell'ordine creato (utilizzando il costruttore automatico
 		// del record)
@@ -105,6 +116,8 @@ public class CustomerOrderService {
 	// ================================================================================
 
 	public CustomerOrderDTO getOrderByCode(String orderCode) {
+		logger.info(String.format("Requested tracking info for order (%s)", orderCode));
+
 		CustomerOrder order = customerOrderRepository.findByTrackingCode(orderCode)
 				.orElseThrow(() -> new EntityNotFoundException(
 						String.format("Order with tracking number (%s) not found", orderCode)));
@@ -116,17 +129,21 @@ public class CustomerOrderService {
 	// AGGIORNAMENTO STATO ORDINE
 	// ================================================================================
 
-	public CustomerOrderDTO updateOrderStatus(Long orderId, String status) {
+	public CustomerOrderDTO updateOrderStatus(Long orderId, OrderStatusRequestDTO statusDTO) {
+		logger.info(String.format("Requested update order id (%s) to status (%s)", orderId,
+				statusDTO != null ? statusDTO.status() : "-"));
+
 		CustomerOrder order = customerOrderRepository.findById(orderId)
 				.orElseThrow(() -> new EntityNotFoundException(String.format("Order with id (%s) not found", orderId)));
 
-		try {
-			order.setStatus(OrderStatus.valueOf(status));
-		} catch (IllegalArgumentException e) {
-			throw new IllegalArgumentException("Invalid order status", e);
-		}
+		if (statusDTO == null || statusDTO.status() == null)
+			throw new IllegalArgumentException("Invalid order status");
+
+		order.setStatus(statusDTO.status());
 
 		customerOrderRepository.save(order);
+
+		logger.info(String.format("Order id (%s) updated with status (%s)", orderId, statusDTO.status()));
 
 		return toDTO(order);
 	}
@@ -135,8 +152,11 @@ public class CustomerOrderService {
 	// RECUPERO PROSSIMO ORDINE
 	// ================================================================================
 
-	public Optional<CustomerOrderDTO> getNextOrder() {
-		return customerOrderRepository.findFirstByStatusOrderByCreatedAtAsc(OrderStatus.PENDING).map(this::toDTO);
+	public CustomerOrderDTO getNextOrder() {
+		logger.info("Fetching next order in queue...");
+
+		return customerOrderRepository.findFirstByStatusOrderByCreatedAtAsc(OrderStatus.PENDING).map(this::toDTO)
+				.orElseThrow(() -> new NoOrdersAvailableException("No orders are currently in progress."));
 	}
 
 	// ================================================================================
@@ -151,8 +171,9 @@ public class CustomerOrderService {
 	public CustomerOrderPizzaDTO toDTO(CustomerOrderPizza customerOrderPizza) {
 		return new CustomerOrderPizzaDTO(customerOrderPizza.getPizza().getId(), customerOrderPizza.getPizza().getCode(),
 				customerOrderPizza.getSelectedCrust().getCode(), customerOrderPizza.getSelectedSize().getCode(),
-				customerOrderPizza.getExtraIngredients().stream().map(ing -> ing.getCode())
-						.collect(Collectors.toList()),
+				(customerOrderPizza.getExtraIngredients() == null ? List.of()
+						: customerOrderPizza.getExtraIngredients().stream().map(ing -> ing.getCode())
+								.collect(Collectors.toList())),
 				customerOrderPizza.getFinalPrice());
 	}
 

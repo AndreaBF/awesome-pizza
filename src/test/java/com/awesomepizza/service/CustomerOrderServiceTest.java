@@ -1,7 +1,6 @@
 package com.awesomepizza.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,6 +23,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.awesomepizza.dto.CustomerOrderDTO;
 import com.awesomepizza.dto.CustomerOrderPizzaDTO;
+import com.awesomepizza.dto.OrderStatusRequestDTO;
+import com.awesomepizza.exception.NoOrdersAvailableException;
 import com.awesomepizza.model.Crust;
 import com.awesomepizza.model.CustomerOrder;
 import com.awesomepizza.model.CustomerOrder.OrderStatus;
@@ -215,7 +216,8 @@ public class CustomerOrderServiceTest {
 		});
 
 		// Richiamo il metodo di aggiornamento dello stato dell'ordine nel servizio
-		CustomerOrderDTO updatedOrder = customerOrderService.updateOrderStatus(1L, "COMPLETED");
+		CustomerOrderDTO updatedOrder = customerOrderService.updateOrderStatus(1L,
+				new OrderStatusRequestDTO(OrderStatus.COMPLETED));
 
 		// Verifica che l'ordine sia stato aggiornato correttamente
 		assertNotNull(updatedOrder);
@@ -240,12 +242,12 @@ public class CustomerOrderServiceTest {
 				.thenReturn(Optional.of(pizzaOrder));
 
 		// Richiamo il metodo del servizio
-		Optional<CustomerOrderDTO> nextOrderResult = customerOrderService.getNextOrder();
+		CustomerOrderDTO nextOrderResult = customerOrderService.getNextOrder();
 
 		// Verifica che il risultato sia presente e contenga i dati dell'ordine
-		assertTrue(nextOrderResult.isPresent());
-		assertEquals("tracking123", nextOrderResult.get().trackingCode());
-		assertEquals(OrderStatus.PENDING, nextOrderResult.get().orderStatus());
+		assertNotNull(nextOrderResult);
+		assertEquals("tracking123", nextOrderResult.trackingCode());
+		assertEquals(OrderStatus.PENDING, nextOrderResult.orderStatus());
 
 		// Verifica che il metodo per ottenere il prossimo ordine sia stato chiamato
 		verify(customerOrderRepository, times(1)).findFirstByStatusOrderByCreatedAtAsc(OrderStatus.PENDING);
@@ -262,10 +264,7 @@ public class CustomerOrderServiceTest {
 				.thenReturn(Optional.empty());
 
 		// Richiamo il metodo del servizio
-		Optional<CustomerOrderDTO> nextOrderResult = customerOrderService.getNextOrder();
-
-		// Verifica che il risultato sia vuoto
-		assertFalse(nextOrderResult.isPresent());
+		assertThrows(NoOrdersAvailableException.class, () -> customerOrderService.getNextOrder());
 
 		// Verifica che il metodo per ottenere il prossimo ordine sia stato chiamato
 		verify(customerOrderRepository, times(1)).findFirstByStatusOrderByCreatedAtAsc(OrderStatus.PENDING);

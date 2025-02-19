@@ -13,7 +13,6 @@ public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, Lo
 	// recupero mediante codice tracking
 	Optional<CustomerOrder> findByTrackingCode(String trackingCode);
 
-	// query derivata che restituisce il primo ordine con stato specificato,
-	// ordinato per creazione (ascendente)
+	// recupera primo ordine in ordine di data creazione, filtrato per stato
 	Optional<CustomerOrder> findFirstByStatusOrderByCreatedAtAsc(OrderStatus status);
 }

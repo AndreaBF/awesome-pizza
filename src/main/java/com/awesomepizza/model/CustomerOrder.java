@@ -22,7 +22,32 @@ public class CustomerOrder {
 		IN_PROGRESS, // Ordine in lavorazione
 		READY, // Pizza pronta
 		COMPLETED, // Ordine completato
-		CANCELED; // Ordine cancellato
+		CANCELLED; // Ordine cancellato
+
+//		private static Map<String, OrderStatus> namesMap = new HashMap<String, OrderStatus>(5);
+//
+//		static {
+//			namesMap.put("PENDING", PENDING);
+//			namesMap.put("IN_PROGRESS", IN_PROGRESS);
+//			namesMap.put("READY", READY);
+//			namesMap.put("COMPLETED", COMPLETED);
+//			namesMap.put("CANCELLED", CANCELLED);
+//		}
+//
+//		@JsonCreator
+//		public static OrderStatus forValue(String value) {
+//			return namesMap.get(value.toUpperCase());
+//		}
+//
+//		@JsonValue
+//		public String toValue() {
+//			for (Entry<String, OrderStatus> entry : namesMap.entrySet()) {
+//				if (entry.getValue() == this)
+//					return entry.getKey();
+//			}
+//
+//			return null; // or fail
+//		}
 	}
 
 	@Id
@@ -41,7 +66,7 @@ public class CustomerOrder {
 	@Size(min = 10, max = 15)
 	private String contactNumber; // Numero di telefono
 
-	@OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+	@OneToMany(mappedBy = "customerOrder", cascade = CascadeType.ALL, orphanRemoval = true)
 	private List<CustomerOrderPizza> pizzas = new ArrayList<CustomerOrderPizza>();
 
 	private LocalDateTime createdAt;

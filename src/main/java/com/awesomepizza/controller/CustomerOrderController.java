@@ -1,8 +1,5 @@
 package com.awesomepizza.controller;
 
-import java.util.Optional;
-
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,8 +11,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.awesomepizza.dto.CustomerOrderDTO;
+import com.awesomepizza.dto.OrderStatusRequestDTO;
 import com.awesomepizza.service.ApiKeyAuthService;
 import com.awesomepizza.service.CustomerOrderService;
+import com.awesomepizza.util.ApiResponseUtil;
 
 import jakarta.validation.Valid;
 
@@ -43,7 +42,7 @@ public class CustomerOrderController {
 	@PostMapping
 	public ResponseEntity<CustomerOrderDTO> createOrder(@Valid @RequestBody CustomerOrderDTO orderDTO) {
 		CustomerOrderDTO createdOrder = customerOrderService.createOrder(orderDTO);
-		return new ResponseEntity<>(createdOrder, HttpStatus.CREATED);
+		return ApiResponseUtil.success(createdOrder);
 	}
 
 	/**
@@ -54,7 +53,7 @@ public class CustomerOrderController {
 	@GetMapping("/{orderCode}")
 	public ResponseEntity<CustomerOrderDTO> getOrderByCode(@PathVariable String orderCode) {
 		CustomerOrderDTO order = customerOrderService.getOrderByCode(orderCode);
-		return ResponseEntity.ok(order);
+		return ApiResponseUtil.success(order);
 	}
 
 	// ================================================================================
@@ -68,13 +67,12 @@ public class CustomerOrderController {
 	 */
 	@PutMapping("/{orderId}/status")
 	public ResponseEntity<CustomerOrderDTO> updateOrderStatus(@RequestHeader("X-API-KEY") String apiKey,
-			@PathVariable Long orderId, @RequestBody String status) {
+			@PathVariable Long orderId, @RequestBody OrderStatusRequestDTO statusDTO) {
 
-		if (!authService.isValidApiKey(apiKey)) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-		}
+		if (!authService.isValidApiKey(apiKey))
+			return ApiResponseUtil.unauthorized(null);
 
-		return ResponseEntity.ok(customerOrderService.updateOrderStatus(orderId, status));
+		return ApiResponseUtil.success(customerOrderService.updateOrderStatus(orderId, statusDTO));
 	}
 
 	/**
@@ -85,13 +83,11 @@ public class CustomerOrderController {
 	@GetMapping("/next")
 	public ResponseEntity<CustomerOrderDTO> getNextOrder(@RequestHeader("X-API-KEY") String apiKey) {
 
-		if (!authService.isValidApiKey(apiKey)) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-		}
+		if (!authService.isValidApiKey(apiKey))
+			return ApiResponseUtil.unauthorized(null);
 
-		Optional<CustomerOrderDTO> nextOrder = customerOrderService.getNextOrder();
-		return nextOrder.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.noContent().build()); // 204 se non ci
-																										// sono ordini
+		// se non trovo errori, in automatico verrà gestito mediante eccezione
+		return ApiResponseUtil.success(customerOrderService.getNextOrder());
 	}
 
 }

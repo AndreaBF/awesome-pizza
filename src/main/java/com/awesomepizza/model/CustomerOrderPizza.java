@@ -11,7 +11,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
-import jakarta.validation.constraints.NotNull;
 
 @Entity
 public class CustomerOrderPizza {
@@ -40,7 +39,6 @@ public class CustomerOrderPizza {
 	@JoinTable(name = "order_pizza_extra_ingredient", joinColumns = @JoinColumn(name = "order_pizza_id"), inverseJoinColumns = @JoinColumn(name = "ingredient_id"))
 	private List<Ingredient> extraIngredients; // Ingredienti extra selezionati
 
-	@NotNull
 	private BigDecimal finalPrice; // Prezzo finale calcolato
 
 	public CustomerOrderPizza() {
