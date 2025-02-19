@@ -2,6 +2,7 @@ package com.awesomepizza.model;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -51,16 +52,19 @@ public class CustomerOrderPizza {
 		this.selectedCrust = selectedCrust;
 		this.selectedSize = selectedSize;
 		this.extraIngredients = extraIngredients;
-		this.finalPrice = calculatePrice();
 	}
 
 	public BigDecimal calculatePrice() {
-		BigDecimal price = pizza.getBasePrice().add(selectedCrust.getPrice()) // Prezzo dell'impasto
-				.add(selectedSize.getPrice()); // Prezzo del formato
+		BigDecimal price = Optional.ofNullable(pizza.getBasePrice()).orElse(BigDecimal.ZERO)
+				.add(Optional.ofNullable(selectedCrust.getPrice()).orElse(BigDecimal.ZERO))
+				.add(Optional.ofNullable(selectedSize.getPrice()).orElse(BigDecimal.ZERO));
 
-		for (Ingredient ingredient : extraIngredients) {
-			price = price.add(ingredient.getPrice()); // Prezzo degli ingredienti extra
+		if (extraIngredients != null) {
+			for (Ingredient ingredient : extraIngredients) {
+				price = price.add(Optional.ofNullable(ingredient.getPrice()).orElse(BigDecimal.ZERO));
+			}
 		}
+
 		return price;
 	}
 
@@ -116,6 +120,10 @@ public class CustomerOrderPizza {
 
 	public BigDecimal getFinalPrice() {
 		return finalPrice;
+	}
+
+	public void setFinalPrice(BigDecimal finalPrice) {
+		this.finalPrice = finalPrice;
 	}
 
 }

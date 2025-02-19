@@ -3,7 +3,8 @@ package com.awesomepizza.dto;
 import java.math.BigDecimal;
 import java.util.List;
 
-public record CustomerOrderPizzaDTO( //
+//DTO per le pizze in RECUPERO ordine
+public record CustomerOrderPizzaResponseDTO( //
 		Long pizzaId, // ID della pizza nel menu
 		String pizzaCode, // Nome della pizza
 		String crustCode, // Tipo di impasto

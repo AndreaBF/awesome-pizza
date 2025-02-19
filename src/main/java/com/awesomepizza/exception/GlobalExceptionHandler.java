@@ -4,7 +4,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.awesomepizza.util.ApiResponseUtil;
@@ -37,5 +40,22 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(NoOrdersAvailableException.class)
 	public ResponseEntity<String> handleNoOrdersAvailable(NoOrdersAvailableException ex) {
 		return ApiResponseUtil.error(ex.getMessage(), HttpStatus.NOT_FOUND);
+	}
+
+	@ExceptionHandler(MethodArgumentNotValidException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public ResponseEntity<String> handleValidationExceptions(MethodArgumentNotValidException ex) {
+		StringBuilder errorMessages = new StringBuilder("Validation failed: ");
+
+		for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+			errorMessages.append(error.getField()).append(" - ").append(error.getDefaultMessage()).append("; ");
+		}
+
+		return ResponseEntity.badRequest().body(errorMessages.toString());
+	}
+
+	@ExceptionHandler(IllegalStateException.class)
+	public ResponseEntity<String> handleIllegalStateException(IllegalStateException ex) {
+		return ResponseEntity.badRequest().body(ex.getMessage());
 	}
 }

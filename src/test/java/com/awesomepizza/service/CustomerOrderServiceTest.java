@@ -21,8 +21,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.awesomepizza.dto.CustomerOrderDTO;
-import com.awesomepizza.dto.CustomerOrderPizzaDTO;
+import com.awesomepizza.dto.CreateCustomerOrderDTO;
+import com.awesomepizza.dto.CreateCustomerOrderPizzaDTO;
+import com.awesomepizza.dto.CustomerOrderPizzaResponseDTO;
+import com.awesomepizza.dto.CustomerOrderResponseDTO;
 import com.awesomepizza.dto.OrderStatusRequestDTO;
 import com.awesomepizza.exception.NoOrdersAvailableException;
 import com.awesomepizza.model.Crust;
@@ -93,17 +95,17 @@ public class CustomerOrderServiceTest {
 		});
 
 		// Crea due pizze di esempio con DTO
-		CustomerOrderPizzaDTO pizzaDTO1 = new CustomerOrderPizzaDTO(null, "BUFALINA", "NORMAL", "STANDARD",
-				List.of("MUSHROOMS"), null);
-		CustomerOrderPizzaDTO pizzaDTO2 = new CustomerOrderPizzaDTO(null, "PEPPERONI", "MULTI_GRAIN", "BABY", List.of(),
-				null);
+		CreateCustomerOrderPizzaDTO pizzaDTO1 = new CreateCustomerOrderPizzaDTO("BUFALINA", "NORMAL", "STANDARD",
+				List.of("MUSHROOMS"));
+		CreateCustomerOrderPizzaDTO pizzaDTO2 = new CreateCustomerOrderPizzaDTO("PEPPERONI", "MULTI_GRAIN", "BABY",
+				List.of());
 
 		// Crea il DTO di input
-		CustomerOrderDTO inputOrderDTO = new CustomerOrderDTO(null, null, null, "John Doe", "1234567890",
+		CreateCustomerOrderDTO inputOrderDTO = new CreateCustomerOrderDTO("John Doe", "1234567890",
 				List.of(pizzaDTO1, pizzaDTO2));
 
 		// Richiamo creazione ordine su service
-		CustomerOrderDTO createdOrderDTO = customerOrderService.createOrder(inputOrderDTO);
+		CustomerOrderResponseDTO createdOrderDTO = customerOrderService.createOrder(inputOrderDTO);
 
 		// Verifica del risultato
 		assertNotNull(createdOrderDTO);
@@ -113,17 +115,17 @@ public class CustomerOrderServiceTest {
 		assertEquals(2, createdOrderDTO.pizzas().size());
 
 		// Mappiamo le pizze per verificare i dettagli
-		Map<String, CustomerOrderPizzaDTO> pizzasMap = createdOrderDTO.pizzas().stream()
-				.collect(Collectors.toMap(CustomerOrderPizzaDTO::pizzaCode, Function.identity()));
+		Map<String, CustomerOrderPizzaResponseDTO> pizzasMap = createdOrderDTO.pizzas().stream()
+				.collect(Collectors.toMap(CustomerOrderPizzaResponseDTO::pizzaCode, Function.identity()));
 
-		CustomerOrderPizzaDTO pizza1 = pizzasMap.get("BUFALINA");
+		CustomerOrderPizzaResponseDTO pizza1 = pizzasMap.get("BUFALINA");
 		assertNotNull(pizza1);
 		assertEquals("NORMAL", pizza1.crustCode());
 		assertEquals("STANDARD", pizza1.sizeCode());
 		assertEquals(1, pizza1.extraIngredientCodes().size());
 		assertEquals("MUSHROOMS", pizza1.extraIngredientCodes().get(0));
 
-		CustomerOrderPizzaDTO pizza2 = pizzasMap.get("PEPPERONI");
+		CustomerOrderPizzaResponseDTO pizza2 = pizzasMap.get("PEPPERONI");
 		assertNotNull(pizza2);
 		assertEquals("MULTI_GRAIN", pizza2.crustCode());
 		assertEquals("BABY", pizza2.sizeCode());
@@ -147,16 +149,8 @@ public class CustomerOrderServiceTest {
 	// CREAZIONE ORDINE CON PIZZA MANCANTE
 	// ================================================================================
 
-	@Test
-	public void testCreateOrderWithNoPizzas() {
-		// Crea il DTO di input con nessuna pizza
-		CustomerOrderDTO inputOrderDTO = new CustomerOrderDTO(null, null, null, "John Doe", "1234567890", List.of());
-
-		// Verifica che venga lanciata un'eccezione quando non ci sono pizze
-		assertThrows(IllegalArgumentException.class, () -> {
-			customerOrderService.createOrder(inputOrderDTO);
-		});
-	}
+	// Non fattibile da qui, la validazione viene fatta mediante annotation sul DTO
+	// pertanto va gestito nel test di integrazione
 
 	// ================================================================================
 	// RECUPERO ORDINE DA TRACKING CODE VALIDO
@@ -174,7 +168,7 @@ public class CustomerOrderServiceTest {
 				.thenReturn(Optional.of(pizzaOrder));
 
 		// Recupera l'ordine tramite tracking code
-		CustomerOrderDTO orderByCodeDTO = customerOrderService.getOrderByCode(pizzaOrder.getTrackingCode());
+		CustomerOrderResponseDTO orderByCodeDTO = customerOrderService.getOrderByCode(pizzaOrder.getTrackingCode());
 
 		// Verifica che l'ordine recuperato sia valido
 		assertNotNull(orderByCodeDTO);
@@ -216,7 +210,7 @@ public class CustomerOrderServiceTest {
 		});
 
 		// Richiamo il metodo di aggiornamento dello stato dell'ordine nel servizio
-		CustomerOrderDTO updatedOrder = customerOrderService.updateOrderStatus(1L,
+		CustomerOrderResponseDTO updatedOrder = customerOrderService.updateOrderStatus(1L,
 				new OrderStatusRequestDTO(OrderStatus.COMPLETED));
 
 		// Verifica che l'ordine sia stato aggiornato correttamente
@@ -242,7 +236,7 @@ public class CustomerOrderServiceTest {
 				.thenReturn(Optional.of(pizzaOrder));
 
 		// Richiamo il metodo del servizio
-		CustomerOrderDTO nextOrderResult = customerOrderService.getNextOrder();
+		CustomerOrderResponseDTO nextOrderResult = customerOrderService.getNextOrder();
 
 		// Verifica che il risultato sia presente e contenga i dati dell'ordine
 		assertNotNull(nextOrderResult);

@@ -10,7 +10,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.awesomepizza.dto.CustomerOrderDTO;
+import com.awesomepizza.dto.CreateCustomerOrderDTO;
+import com.awesomepizza.dto.CustomerOrderResponseDTO;
 import com.awesomepizza.dto.OrderStatusRequestDTO;
 import com.awesomepizza.service.ApiKeyAuthService;
 import com.awesomepizza.service.CustomerOrderService;
@@ -40,8 +41,9 @@ public class CustomerOrderController {
 	 * POST /api/orders
 	 */
 	@PostMapping
-	public ResponseEntity<CustomerOrderDTO> createOrder(@Valid @RequestBody CustomerOrderDTO orderDTO) {
-		CustomerOrderDTO createdOrder = customerOrderService.createOrder(orderDTO);
+	public ResponseEntity<CustomerOrderResponseDTO> createOrder(
+			@Valid @RequestBody CreateCustomerOrderDTO creteOrderDTO) {
+		CustomerOrderResponseDTO createdOrder = customerOrderService.createOrder(creteOrderDTO);
 		return ApiResponseUtil.success(createdOrder);
 	}
 
@@ -51,8 +53,8 @@ public class CustomerOrderController {
 	 * GET /api/orders/{orderCode}
 	 */
 	@GetMapping("/{orderCode}")
-	public ResponseEntity<CustomerOrderDTO> getOrderByCode(@PathVariable String orderCode) {
-		CustomerOrderDTO order = customerOrderService.getOrderByCode(orderCode);
+	public ResponseEntity<CustomerOrderResponseDTO> getOrderByCode(@PathVariable String orderCode) {
+		CustomerOrderResponseDTO order = customerOrderService.getOrderByCode(orderCode);
 		return ApiResponseUtil.success(order);
 	}
 
@@ -66,7 +68,7 @@ public class CustomerOrderController {
 	 * PUT /api/orders/{orderId}/status
 	 */
 	@PutMapping("/{orderId}/status")
-	public ResponseEntity<CustomerOrderDTO> updateOrderStatus(@RequestHeader("X-API-KEY") String apiKey,
+	public ResponseEntity<CustomerOrderResponseDTO> updateOrderStatus(@RequestHeader("X-API-KEY") String apiKey,
 			@PathVariable Long orderId, @RequestBody OrderStatusRequestDTO statusDTO) {
 
 		if (!authService.isValidApiKey(apiKey))
@@ -81,7 +83,7 @@ public class CustomerOrderController {
 	 * GET /api/orders/next
 	 */
 	@GetMapping("/next")
-	public ResponseEntity<CustomerOrderDTO> getNextOrder(@RequestHeader("X-API-KEY") String apiKey) {
+	public ResponseEntity<CustomerOrderResponseDTO> getNextOrder(@RequestHeader("X-API-KEY") String apiKey) {
 
 		if (!authService.isValidApiKey(apiKey))
 			return ApiResponseUtil.unauthorized(null);
